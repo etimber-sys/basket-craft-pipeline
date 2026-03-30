@@ -5,8 +5,8 @@ CREATE TABLE IF NOT EXISTS stg_orders (
     user_id             INT,
     primary_product_id  INT,
     items_purchased     SMALLINT,
-    price_usd           NUMERIC(6,2),
-    cogs_usd            NUMERIC(6,2)
+    price_usd           NUMERIC(10,2),
+    cogs_usd            NUMERIC(10,2)
 );
 
 CREATE TABLE IF NOT EXISTS stg_order_items (
@@ -15,8 +15,8 @@ CREATE TABLE IF NOT EXISTS stg_order_items (
     order_id        INT,
     product_id      INT,
     is_primary_item SMALLINT,
-    price_usd       NUMERIC(6,2),
-    cogs_usd        NUMERIC(6,2)
+    price_usd       NUMERIC(10,2),
+    cogs_usd        NUMERIC(10,2)
 );
 
 CREATE TABLE IF NOT EXISTS stg_products (
