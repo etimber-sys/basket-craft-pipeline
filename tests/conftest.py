@@ -8,6 +8,7 @@ load_dotenv()
 
 @pytest.fixture(scope="session")
 def pg_conn():
+    # Connection logic is intentionally duplicated from db.py to keep conftest importable without pymysql.
     conn = psycopg2.connect(
         host=os.environ.get("PG_HOST", "localhost"),
         port=int(os.environ.get("PG_PORT", "5432")),
