@@ -20,6 +20,15 @@ ORDER BY 1, 2
 
 
 def transform(pg_conn=None):
+    """Aggregate stg_order_items + stg_products into monthly_sales.
+
+    Truncates monthly_sales then inserts aggregated rows grouped by product
+    and month. Metrics: revenue (SUM price_usd), order_count (COUNT DISTINCT
+    order_id), avg_order_value (revenue / order_count).
+
+    If pg_conn is None, opens and closes its own connection (pipeline mode).
+    Pass an existing connection to reuse it without closing (test mode).
+    """
     _close = pg_conn is None
     if _close:
         pg_conn = get_pg_conn()
