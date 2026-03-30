@@ -60,6 +60,9 @@ def extract():
     Opens its own connections, performs a full TRUNCATE+INSERT for each table,
     commits, and closes connections. The MySQL cursor is a DictCursor (rows as
     dicts) as configured in get_mysql_conn().
+
+    If an error occurs mid-extract, the PostgreSQL transaction is rolled back so
+    staging tables are not left empty.
     """
     mysql_conn = get_mysql_conn()
     pg_conn = get_pg_conn()
@@ -69,6 +72,9 @@ def extract():
                 count = extract_table(mysql_cur, pg_cur, table, columns)
                 print(f"  stg_{table}: {count} rows loaded")
         pg_conn.commit()
+    except Exception:
+        pg_conn.rollback()
+        raise
     finally:
         mysql_conn.close()
         pg_conn.close()

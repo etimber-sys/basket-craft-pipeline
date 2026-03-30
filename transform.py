@@ -28,6 +28,9 @@ def transform(pg_conn=None):
 
     If pg_conn is None, opens and closes its own connection (pipeline mode).
     Pass an existing connection to reuse it without closing (test mode).
+
+    If an error occurs after TRUNCATE, the transaction is rolled back so
+    monthly_sales is not left empty.
     """
     _close = pg_conn is None
     if _close:
@@ -37,6 +40,9 @@ def transform(pg_conn=None):
             cur.execute(_TRUNCATE)
             cur.execute(_INSERT)
         pg_conn.commit()
+    except Exception:
+        pg_conn.rollback()
+        raise
     finally:
         if _close:
             pg_conn.close()
