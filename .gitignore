@@ -1,6 +1,12 @@
 # Git worktrees
 .worktrees/
 
+# Claude Code local settings (machine-specific)
+.claude/settings.local.json
+
+# Superpowers runtime artifacts
+.superpowers/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
