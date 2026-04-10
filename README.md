@@ -1,6 +1,6 @@
 # Basket Craft Sales Pipeline
 
-An ELT pipeline that extracts sales data from the Basket Craft MySQL database, loads it into a local PostgreSQL instance, and transforms it into a `monthly_sales` fact table for dashboard reporting.
+An ELT pipeline that extracts sales data from the Basket Craft MySQL database, loads it into PostgreSQL, and transforms it into a `monthly_sales` fact table for dashboard reporting.
 
 **Dashboard metrics produced:**
 - Revenue by product and month
@@ -10,8 +10,8 @@ An ELT pipeline that extracts sales data from the Basket Craft MySQL database, l
 ## How it works
 
 ```
-MySQL (db.isba.co)          PostgreSQL (Docker)
-──────────────────          ───────────────────
+MySQL (db.isba.co)          PostgreSQL
+──────────────────          ──────────
   orders          ────────► stg_orders
   order_items     ────────► stg_order_items       monthly_sales
   products        ────────► stg_products    ─SQL─► (fact table)
@@ -19,11 +19,26 @@ MySQL (db.isba.co)          PostgreSQL (Docker)
 
 Each run does a full refresh: staging and fact tables are truncated and repopulated from scratch. The pipeline is triggered manually by running `python pipeline.py`.
 
+## AWS RDS PostgreSQL
+
+The project includes an AWS RDS PostgreSQL instance pre-loaded with raw Basket Craft data.
+
+| Setting | Value |
+|---------|-------|
+| Instance | `basket-craft-db` |
+| Engine | PostgreSQL 17.6 |
+| Host | `basket-craft-db.canqgqm8gu16.us-east-1.rds.amazonaws.com` |
+| Port | `5432` |
+| Database | `basket_craft` |
+| Instance class | `db.t3.micro` (free tier) |
+
+To run the pipeline against RDS, set `PG_HOST` in `.env` to the host above.
+
 ## Prerequisites
 
 - Python 3.x
-- Docker Desktop (for the local PostgreSQL instance)
 - Access to the Basket Craft MySQL database
+- Docker Desktop (optional — for running a local PostgreSQL instance instead of RDS)
 
 ## Setup
 
@@ -48,24 +63,22 @@ MYSQL_USER=your_username
 MYSQL_PASSWORD=your_password
 MYSQL_DATABASE=basket_craft
 
-PG_HOST=localhost
+# Use the RDS endpoint for production, or localhost for local Docker
+PG_HOST=basket-craft-db.canqgqm8gu16.us-east-1.rds.amazonaws.com
 PG_PORT=5432
-PG_USER=basket_craft
-PG_PASSWORD=basket_craft
+PG_USER=student
+PG_PASSWORD=your_password
 PG_DATABASE=basket_craft
 ```
 
-**3. Start PostgreSQL**
+**3. (Optional) Run against a local PostgreSQL instead of RDS**
 
 ```bash
 docker compose up -d
-```
-
-**4. Initialize the schema** (run once after first `docker compose up`)
-
-```bash
 psql -U basket_craft -d basket_craft -f schema.sql
 ```
+
+Then set `PG_HOST=localhost` in `.env`.
 
 ## Running the pipeline
 
@@ -86,7 +99,7 @@ Pipeline complete.
 
 ## Running tests
 
-Tests require the PostgreSQL Docker container to be running. MySQL is not needed — the MySQL layer is mocked.
+Tests require a running PostgreSQL instance (local Docker recommended — point `PG_HOST=localhost`). MySQL is not needed — the MySQL layer is mocked.
 
 ```bash
 pytest
