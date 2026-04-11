@@ -1,0 +1,25 @@
+version: 2
+
+sources:
+  - name: raw
+    database: basket_craft
+    schema: raw
+    tables:
+      - name: orders
+        description: >
+          One row per order placed on the Basket Craft website. Contains order-level
+          pricing, the primary product purchased, and the number of items in the order.
+
+      - name: order_items
+        description: >
+          One row per line item within an order. Each order can contain multiple
+          products. Price and cost are recorded at the item level.
+
+      - name: products
+        description: >
+          Reference table for the four Basket Craft gift basket products.
+          Contains product name and description.
+
+      - name: customers
+        description: >
+          One row per customer. Contains customer identity and registration details.

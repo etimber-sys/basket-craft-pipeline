@@ -1,0 +1,15 @@
+version: 2
+
+models:
+  - name: fct_order_items
+    description: >
+      One row per order line item. Grain: one record per order_item_id.
+      Joins stg_order_items to stg_orders to attach customer and session
+      context to each item sold. Use this table as the foundation for
+      revenue and order-line-level analysis.
+    columns:
+      - name: order_item_id
+        description: Surrogate primary key — uniquely identifies each order line item.
+        tests:
+          - unique
+          - not_null
