@@ -26,6 +26,14 @@ PG_PORT=5432
 PG_USER=basket_craft
 PG_PASSWORD=basket_craft
 PG_DATABASE=basket_craft
+
+SNOWFLAKE_ACCOUNT=your_account_identifier
+SNOWFLAKE_USER=your_username
+SNOWFLAKE_PASSWORD=your_password
+SNOWFLAKE_ROLE=your_role
+SNOWFLAKE_WAREHOUSE=your_warehouse
+SNOWFLAKE_DATABASE=basket_craft
+SNOWFLAKE_SCHEMA=raw
 ```
 
 ## Common Commands
@@ -37,8 +45,11 @@ docker compose up -d
 # Initialize the PostgreSQL schema (run once on a fresh instance)
 psql -U basket_craft -d basket_craft -f schema.sql
 
-# Run the full ELT pipeline
+# Run the full ELT pipeline (MySQL → RDS PostgreSQL)
 python pipeline.py
+
+# Load raw tables from RDS into Snowflake (basket_craft.raw)
+python load_snowflake.py
 
 # Run all tests
 pytest
@@ -52,12 +63,15 @@ pytest tests/test_transform.py::test_transform_aggregates_by_product_and_month
 Manual ELT pipeline: Basket Craft MySQL → PostgreSQL staging → `monthly_sales` fact table.
 
 ```
-MySQL (db.isba.co)          PostgreSQL (Docker or RDS)
-──────────────────          ──────────────────────────
-  orders          ────────► stg_orders         (extracted, not used by transform)
-  order_items     ────────► stg_order_items ──┐
-  products        ────────► stg_products    ──┴─SQL─► monthly_sales (fact table)
+MySQL (db.isba.co)     PostgreSQL (Docker or RDS)     Snowflake (basket_craft.raw)
+──────────────────     ──────────────────────────     ────────────────────────────
+  orders         ────► stg_orders              ─────► orders
+  order_items    ────► stg_order_items  ──┐    ─────► order_items
+  products       ────► stg_products    ──┴─SQL─► monthly_sales
+                                                ─────► products
 ```
+
+`pipeline.py` handles the MySQL → PostgreSQL leg. `load_snowflake.py` handles the PostgreSQL → Snowflake leg and runs independently.
 
 **Load strategy:** Full refresh — every run TRUNCATEs then re-inserts all rows. No incremental logic.
 
@@ -72,6 +86,7 @@ Expected row counts (from production MySQL): ~32K orders, ~54K order_items, 4 pr
 | `transform.py` | Runs a single aggregation SQL query inside PostgreSQL: `stg_order_items JOIN stg_products → monthly_sales`. |
 | `db.py` | Connection factories `get_mysql_conn()` / `get_pg_conn()`. Reads credentials from env vars; raises `EnvironmentError` on missing required vars. |
 | `schema.sql` | `CREATE TABLE IF NOT EXISTS` for all staging and fact tables. Run once to set up a fresh PostgreSQL instance. |
+| `load_snowflake.py` | Reads `stg_orders`, `stg_order_items`, `stg_products` from RDS and bulk-loads them into `basket_craft.raw` in Snowflake via `write_pandas`. Tables are created automatically on first run (`auto_create_table=True`). Full refresh on every run (`overwrite=True`). Credentials read from `.env` (`SNOWFLAKE_*` vars). |
 
 ### Key design decisions
 
@@ -105,3 +120,10 @@ Required in `.env`:
 | `PG_DATABASE` | |
 | `PG_HOST` | Optional, defaults to `localhost`. Set to RDS endpoint for production pipeline runs. |
 | `PG_PORT` | Optional, defaults to `5432` |
+| `SNOWFLAKE_ACCOUNT` | Account identifier (e.g. `xy12345.us-east-1`) — found in your Snowflake login URL |
+| `SNOWFLAKE_USER` | Snowflake username |
+| `SNOWFLAKE_PASSWORD` | Snowflake password |
+| `SNOWFLAKE_ROLE` | Snowflake role (e.g. `ACCOUNTADMIN`) |
+| `SNOWFLAKE_WAREHOUSE` | Warehouse used for the load |
+| `SNOWFLAKE_DATABASE` | Target database — `basket_craft` |
+| `SNOWFLAKE_SCHEMA` | Target schema — `raw` |
